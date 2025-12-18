@@ -99,12 +99,10 @@ class WCSPlottingTools:
         rad : float
             circle_radius in arcsec
         color : str
-        line_style: str
-        line_width: float
-        alpha: float
-        fill: bool
-
-
+        line_style : str
+        line_width : float
+        alpha : float
+        fill : bool
 
         Returns
         -------
@@ -114,7 +112,7 @@ class WCSPlottingTools:
         if fill:
             face_color = color
         else:
-            face_color = 'none'
+            face_color = 'None'
 
         if isinstance(pos, list):
             if not isinstance(rad, list):
@@ -131,12 +129,37 @@ class WCSPlottingTools:
                                                                                   alpha):
                 circle = SphericalCircle(pos_i, rad_i * u.arcsec, edgecolor=color_i, facecolor=face_color,
                                          linewidth=line_width_i,
-                                         linestyle=line_style_i, alpha=alpha_i, transform=ax.get_transform('fk5'))
+                                         linestyle=line_style_i, alpha=alpha_i, transform=ax.get_transform('icrs'))
                 ax.add_patch(circle)
+
+                # # Generate angles around the circle
+                # angles = np.linspace(0, 2 * np.pi, 100) * u.rad
+                #
+                # # Calculate the positions of points on the circle
+                # # This involves using the `directional_offset_by` method of SkyCoord
+                # circle_coords = pos_i.directional_offset_by(angles, rad_i * u.arcsec)
+                #
+                #
+                # # Plot the circle points
+                # ax.scatter_coord(circle_coords, color=color, linewidth=line_width_i, linestyle=line_style_i, alpha=alpha_i, label=label)
+
+
+
         else:
             circle = SphericalCircle(pos, rad * u.arcsec, edgecolor=color, facecolor=face_color, linewidth=line_width,
-                                     linestyle=line_style, alpha=alpha, transform=ax.get_transform('fk5'))
+                                     linestyle=line_style, alpha=alpha, transform=ax.get_transform('icrs'))
             ax.add_patch(circle)
+
+            # angles = np.linspace(0, 2 * np.pi, 100) * u.rad
+            #
+            # # Calculate the positions of points on the circle
+            # # This involves using the `directional_offset_by` method of SkyCoord
+            # circle_coords = pos.directional_offset_by(angles, rad * u.arcsec)
+            #
+            #
+            # # Plot the circle points
+            # ax.scatter_coord(circle_coords, color=color, linewidth=line_width, linestyle=line_style, alpha=alpha, label=label)
+
 
     @staticmethod
     def display_beam(ax, major_arcsec, minor_arcsec, angle_degree, image_shape, wcs, color='k', x_frac=0.05, y_frac=0.95,
@@ -567,6 +590,98 @@ class AxisTools:
         ax.spines["left"].set_linewidth(line_width)
         ax.spines["right"].set_linewidth(line_width)
 
+    @staticmethod
+    def data2axis_lim(ax, min_value, max_value, log_axis=False, min_margin=0.01, max_margin=0.01, axis='x'):
+        if not log_axis:
+            min_lim = min_value - (max_value - min_value) * min_margin
+            max_lim = max_value + (max_value - min_value) * max_margin
+        else:
+            log_min_lim = np.log10(min_value) - (np.log10(max_value) - np.log10(min_value)) * min_margin
+            log_max_lim = np.log10(max_value) + (np.log10(max_value) - np.log10(min_value)) * max_margin
+            min_lim = 10 ** log_min_lim
+            max_lim = 10 ** log_max_lim
+
+        if axis == 'x':
+            ax.set_xlim(min_lim, max_lim)
+        elif axis == 'y':
+            ax.set_ylim(min_lim, max_lim)
+
+        return min_lim, max_lim
+
+    @staticmethod
+    def get_log_tick_labels(min_value, max_value):
+
+        minor_x_tick_array = np.array([2, 3, 4, 5, 6, 7, 8, 9])
+
+        order_of_mag_min_wave = math.floor(np.log10(min_value))
+        order_of_mag_max_wave = int(np.log10(max_value))
+
+        list_major_ticks = []
+        list_major_str_ticks = []
+        list_minor_ticks = []
+        list_minor_str_ticks = []
+
+
+        for order_of_mag in range(order_of_mag_min_wave, order_of_mag_max_wave + 1):
+            list_major_ticks.append(10**order_of_mag)
+            minor_ticks = list(minor_x_tick_array * 10**order_of_mag)
+            minor_str_ticks = []
+            if order_of_mag < 0:
+                list_major_str_ticks.append(f'{10**order_of_mag:.{-order_of_mag}f}')
+                minor_str_ticks.append(f'{minor_ticks[0]:.{-order_of_mag}f}')
+                minor_str_ticks.append(f'{minor_ticks[1]:.{-order_of_mag}f}')
+                minor_str_ticks.append(f'')
+                minor_str_ticks.append(f'{minor_ticks[3]:.{-order_of_mag}f}')
+                minor_str_ticks.append(f'')
+                minor_str_ticks.append(f'{minor_ticks[5]:.{-order_of_mag}f}')
+                minor_str_ticks.append(f'')
+                minor_str_ticks.append(f'')
+            else:
+                list_major_str_ticks.append(str(int(10**order_of_mag)))
+
+                minor_str_ticks.append(str(int(minor_ticks[0])))
+                minor_str_ticks.append(str(int(minor_ticks[1])))
+                minor_str_ticks.append(f'')
+                minor_str_ticks.append(str(int(minor_ticks[3])))
+                minor_str_ticks.append(f'')
+                minor_str_ticks.append(str(int(minor_ticks[5])))
+                minor_str_ticks.append(f'')
+                minor_str_ticks.append(f'')
+            list_minor_ticks += minor_ticks
+            list_minor_str_ticks += minor_str_ticks
+
+        # remove all ticks which are not in the limits
+        for minor_tick_value in list_minor_ticks:
+            if minor_tick_value < min_value:
+                list_minor_ticks.pop(0)
+                list_minor_str_ticks.pop(0)
+            else:
+                break
+
+        for major_tick_value in list_major_ticks:
+            if major_tick_value < min_value:
+                list_major_ticks.pop(0)
+                list_major_str_ticks.pop(0)
+            else:
+                break
+
+
+        mask_values_larger_major = list(np.where(np.array(list_major_ticks, dtype=float) > max_value)[0])
+        mask_values_larger_minor = list(np.where(np.array(list_minor_ticks, dtype=float) > max_value)[0])
+
+        # Sort indices in reverse order
+        sorted_indices_major = sorted(mask_values_larger_major, reverse=True)
+        sorted_indices_minor = sorted(mask_values_larger_minor, reverse=True)
+
+        # Iterate and delete
+        for index in sorted_indices_major:
+            del list_major_ticks[index]
+            del list_major_str_ticks[index]
+        for index in sorted_indices_minor:
+            del list_minor_ticks[index]
+            del list_minor_str_ticks[index]
+
+        return list_major_ticks, list_major_str_ticks, list_minor_ticks, list_minor_str_ticks
 
 class ImgTools:
     """
@@ -609,11 +724,11 @@ class ImgTools:
             of shape (N,N, 3)
         """
         if min_max_r is None:
-            min_max_r = [0., 99.7]
+            min_max_r = [5., 99.7]
         if min_max_g is None:
-            min_max_g = [0., 99.7]
+            min_max_g = [5., 99.7]
         if min_max_b is None:
-            min_max_b = [0., 99.7]
+            min_max_b = [5., 99.7]
 
         color_list = []
         if data_r is not None:
@@ -1027,7 +1142,8 @@ class ArrowTools:
     @staticmethod
     def plot_arrow_with_text(ax, x1 , x2, y1, y2, text_str,
                              awwor_line_width=2, awwor_line_color='k', arrow_line_style='-',
-                             arrow_type='-|>', arrow_head_width=1, arrow_head_length=2,
+                             arrow_type='-|>', arrow_head_width=1, arrow_head_length=2, arrow_alpha=1.0,
+
                              text_fontsize=20, text_color='k',
                              text_ha='center',
                              text_va='bottom',
@@ -1046,7 +1162,7 @@ class ArrowTools:
 
         ax.annotate('', xy=(x1 + ext_x, y1 + ext_y), xycoords='data', xytext=(x1, y1), textcoords='data',
                     arrowprops=dict(arrowstyle=arrowstyle, color=awwor_line_color, lw=awwor_line_width,
-                                    ls=arrow_line_style,))
+                                    ls=arrow_line_style,  alpha=arrow_alpha))
 
         StrTools.display_text_on_data_point(
             ax=ax, text=text_str, x_data_point=x1 + ext_x/2, y_data_point= y1 + ext_y/2,
@@ -1115,7 +1231,7 @@ class StrTools:
         return r'%.1f' % ((mstar / 10**(ord_mag)))
 
     @staticmethod
-    def mstar2label(mstar):
+    def mstar2label(mstar, add_unit=True):
         if np.isnan(mstar):
             return 'NaN'
         if mstar == -999:
@@ -1123,8 +1239,10 @@ class StrTools:
         # print(mstar)
         order_of_mag = int(np.log10(mstar))
         # print(order_of_mag)
-        return r'%.1f 10$^{%i}$ M$_{\odot}$' % ((mstar / 10**(order_of_mag)), order_of_mag)
-
+        if add_unit:
+            return r'%.1f 10$^{%i}$ M$_{\odot}$' % ((mstar / 10**(order_of_mag)), order_of_mag)
+        else:
+            return r'%.1f 10$^{%i}$' % ((mstar / 10**(order_of_mag)), order_of_mag)
 
     @staticmethod
     def display_text_in_corner(ax, text, fontsize, text_color='k', x_frac=0.02, y_frac=0.98, horizontal_alignment='left',
