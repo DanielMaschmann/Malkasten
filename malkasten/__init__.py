@@ -14,7 +14,10 @@ __all__ = [
     'SEDTools',
     'SpecPlotTools',
     'CurvedText',
+    'plotting_params'
 ]
 
 from malkasten.plotting_tools import (WCSPlottingTools, AxisTools, ImgTools, CCDTools, ArrowTools, StrTools,
                                       ColorBarTools, SEDTools, SpecPlotTools, CurvedText)
+from malkasten import plotting_params
+

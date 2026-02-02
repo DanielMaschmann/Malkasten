@@ -14,6 +14,7 @@ from matplotlib.colorbar import ColorbarBase
 from matplotlib.patches import ConnectionPatch, Ellipse
 from matplotlib import patheffects
 from matplotlib import text as mtext
+plt.rc('text', usetex=True)
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord
@@ -30,6 +31,7 @@ from photutils.background import Background2D, MedianBackground
 from regions import PixCoord, RectanglePixelRegion
 
 from malkasten import multicolorfits as mcf
+from malkasten import plotting_params
 from werkzeugkiste import helper_func, phys_params, spec_tools
 from obszugang import ObsTools, PhangsSampleAccess
 from sternenstaub import DustTools
@@ -88,7 +90,7 @@ class WCSPlottingTools:
                 linewidth=line_width, linestyle=line_style)
 
     @staticmethod
-    def plot_coord_circle(ax, pos, rad, color, line_style='-', line_width=3, alpha=1., fill=False):
+    def plot_coord_circle(ax, pos, rad, color, line_style='-', line_width=3, alpha=1., fill=False, zorder=1):
         """
         function to draw circles around a coordinate on an axis with a WCS projection
 
@@ -147,7 +149,7 @@ class WCSPlottingTools:
 
         else:
             circle = SphericalCircle(pos, rad * u.arcsec, edgecolor=color, facecolor=face_color, linewidth=line_width,
-                                     linestyle=line_style, alpha=alpha, transform=ax.get_transform('icrs'))
+                                     linestyle=line_style, alpha=alpha, transform=ax.get_transform('icrs'), zorder=zorder)
             ax.add_patch(circle)
 
             # angles = np.linspace(0, 2 * np.pi, 100) * u.rad
@@ -428,7 +430,8 @@ class WCSPlottingTools:
                         ra_minpad=0.8, dec_minpad=0.8, ra_tick_color='k', ra_label_color='k',
                         dec_tick_color='k', dec_label_color='k',
                         fontsize=15., labelsize=14., ra_tick_num=None, dec_tick_num=None,
-                        ra_minor_ticks=True, dec_minor_ticks=True):
+                        ra_minor_ticks=True, dec_minor_ticks=True, x_label_str ='ra', y_label_str ='dec',
+                        ra_rotation=0, dec_rotation=90):
         """
         plots circle on image using coordinates and WCS to orientate
 
@@ -448,30 +451,30 @@ class WCSPlottingTools:
         -------
         None
         """
-        ax.tick_params(which='ra', width=1.5, length=7, direction='in', color=ra_tick_color, labelsize=labelsize)
-        ax.tick_params(which='dec', width=1.5, length=7, direction='in', color=dec_tick_color, labelsize=labelsize)
+        ax.tick_params(which=x_label_str, width=1.5, length=7, direction='in', color=ra_tick_color, labelsize=labelsize)
+        ax.tick_params(which=y_label_str, width=1.5, length=7, direction='in', color=dec_tick_color, labelsize=labelsize)
 
         if not ra_tick_label:
-            ax.coords['ra'].set_ticklabel_visible(False)
-            ax.coords['ra'].set_axislabel(' ', color=ra_label_color)
+            ax.coords[x_label_str].set_ticklabel_visible(False)
+            ax.coords[x_label_str].set_axislabel(' ', color=ra_label_color)
         else:
-            ax.coords['ra'].set_ticklabel(rotation=0, color=ra_label_color)
-            ax.coords['ra'].set_axislabel(ra_axis_label, minpad=ra_minpad, color=ra_label_color, ha=ra_label_ha, fontsize=fontsize)
+            ax.coords[x_label_str].set_ticklabel(rotation=ra_rotation, color=ra_label_color)
+            ax.coords[x_label_str].set_axislabel(ra_axis_label, minpad=ra_minpad, color=ra_label_color, ha=ra_label_ha, fontsize=fontsize)
         if not dec_tick_label:
-            ax.coords['dec'].set_ticklabel_visible(False)
-            ax.coords['dec'].set_axislabel(' ', color=dec_label_color)
+            ax.coords[y_label_str].set_ticklabel_visible(False)
+            ax.coords[y_label_str].set_axislabel(' ', color=dec_label_color)
         else:
-            ax.coords['dec'].set_ticklabel(rotation=90, color=dec_label_color)
-            ax.coords['dec'].set_axislabel(dec_axis_label, minpad=dec_minpad, color=dec_label_color, va=dec_label_va, fontsize=fontsize)
+            ax.coords[y_label_str].set_ticklabel(rotation=dec_rotation, color=dec_label_color)
+            ax.coords[y_label_str].set_axislabel(dec_axis_label, minpad=dec_minpad, color=dec_label_color, va=dec_label_va, fontsize=fontsize)
 
         if ra_tick_num is not None:
-            ax.coords['ra'].set_ticks(number=ra_tick_num)
+            ax.coords[x_label_str].set_ticks(number=ra_tick_num)
         if ra_minor_ticks:
-            ax.coords['ra'].display_minor_ticks(True)
+            ax.coords[x_label_str].display_minor_ticks(True)
         if dec_tick_num is not None:
-            ax.coords['dec'].set_ticks(number=dec_tick_num)
+            ax.coords[y_label_str].set_ticks(number=dec_tick_num)
         if dec_minor_ticks:
-            ax.coords['dec'].display_minor_ticks(True)
+            ax.coords[y_label_str].display_minor_ticks(True)
 
     @staticmethod
     def plot_slit(ax, coords_slit_pix, slit_length, slit_width, slit_pa, plot_scatter=True, color='red', lw=2,
@@ -491,7 +494,8 @@ class WCSPlottingTools:
                                 connection_path_pos1='top_left',
                                 connection_path_pos2='bottom_right',
                                 box_color='tab:gray', box_line_style='--', box_line_width=8, box_alpha=1.,
-                                connection_color='tab:gray', connection_line_style='--', connection_line_width=8, connection_alpha=1.,
+                                connection_color='tab:gray', connection_line_style='--', connection_line_width=8,
+                                connection_alpha=1., zorder=1, add_on_fig=False,
                                 ):
 
         coords_obj = SkyCoord(ra=ra_obj*u.deg, dec=dec_obj*u.deg)
@@ -548,13 +552,24 @@ class WCSPlottingTools:
         con_box_1 = ConnectionPatch(
             xyA=(pos_pix_zoom_in_box_1[0], pos_pix_zoom_in_box_1[1]), coordsA=ax_zoom_in.transData,
             xyB=(pos_pix_marker_box_1[0], pos_pix_marker_box_1[1]), coordsB=ax_img_large.transData,
-            linestyle=connection_line_style, linewidth=connection_line_width, color=connection_color, alpha=connection_alpha)
+            linestyle=connection_line_style, linewidth=connection_line_width, color=connection_color,
+            alpha=connection_alpha, zorder=zorder)
         con_box_2 = ConnectionPatch(
             xyA=(pos_pix_zoom_in_box_2[0], pos_pix_zoom_in_box_2[1]), coordsA=ax_zoom_in.transData,
             xyB=(pos_pix_marker_box_2[0], pos_pix_marker_box_2[1]), coordsB=ax_img_large.transData,
-            linestyle=connection_line_style, linewidth=connection_line_width, color=connection_color, alpha=connection_alpha)
-        fig.add_artist(con_box_1)
-        fig.add_artist(con_box_2)
+            linestyle=connection_line_style, linewidth=connection_line_width, color=connection_color,
+            alpha=connection_alpha, zorder=zorder)
+
+        if add_on_fig:
+            fig.add_artist(con_box_1)
+            fig.add_artist(con_box_2)
+        else:
+            ax_img_large.add_patch(con_box_1)
+            ax_img_large.add_patch(con_box_2)
+
+
+
+
 
 
 class AxisTools:
@@ -609,9 +624,12 @@ class AxisTools:
         return min_lim, max_lim
 
     @staticmethod
-    def get_log_tick_labels(min_value, max_value):
+    def get_log_tick_labels(min_value, max_value, minor_tick_label_display=None):
 
         minor_x_tick_array = np.array([2, 3, 4, 5, 6, 7, 8, 9])
+
+        if minor_tick_label_display is None:
+            minor_tick_label_display = [True, True, False, True, False, True, False, False]
 
         order_of_mag_min_wave = math.floor(np.log10(min_value))
         order_of_mag_max_wave = int(np.log10(max_value))
@@ -621,49 +639,47 @@ class AxisTools:
         list_minor_ticks = []
         list_minor_str_ticks = []
 
-
         for order_of_mag in range(order_of_mag_min_wave, order_of_mag_max_wave + 1):
             list_major_ticks.append(10**order_of_mag)
             minor_ticks = list(minor_x_tick_array * 10**order_of_mag)
             minor_str_ticks = []
             if order_of_mag < 0:
                 list_major_str_ticks.append(f'{10**order_of_mag:.{-order_of_mag}f}')
-                minor_str_ticks.append(f'{minor_ticks[0]:.{-order_of_mag}f}')
-                minor_str_ticks.append(f'{minor_ticks[1]:.{-order_of_mag}f}')
-                minor_str_ticks.append(f'')
-                minor_str_ticks.append(f'{minor_ticks[3]:.{-order_of_mag}f}')
-                minor_str_ticks.append(f'')
-                minor_str_ticks.append(f'{minor_ticks[5]:.{-order_of_mag}f}')
-                minor_str_ticks.append(f'')
-                minor_str_ticks.append(f'')
+
+                for idx_minor_tick in range(len(minor_tick_label_display)):
+                    if minor_tick_label_display[idx_minor_tick]:
+                        minor_str_ticks.append(f'{minor_ticks[idx_minor_tick]:.{-order_of_mag}f}')
+                    else:
+                        minor_str_ticks.append(f'')
             else:
                 list_major_str_ticks.append(str(int(10**order_of_mag)))
 
-                minor_str_ticks.append(str(int(minor_ticks[0])))
-                minor_str_ticks.append(str(int(minor_ticks[1])))
-                minor_str_ticks.append(f'')
-                minor_str_ticks.append(str(int(minor_ticks[3])))
-                minor_str_ticks.append(f'')
-                minor_str_ticks.append(str(int(minor_ticks[5])))
-                minor_str_ticks.append(f'')
-                minor_str_ticks.append(f'')
+                for idx_minor_tick in range(len(minor_tick_label_display)):
+                    if minor_tick_label_display[idx_minor_tick]:
+                        minor_str_ticks.append(str(int(minor_ticks[idx_minor_tick])))
+                    else:
+                        minor_str_ticks.append(f'')
             list_minor_ticks += minor_ticks
             list_minor_str_ticks += minor_str_ticks
 
         # remove all ticks which are not in the limits
-        for minor_tick_value in list_minor_ticks:
+        idx_list_to_remove_minor = np.ones(len(list_minor_ticks), dtype=bool)
+        for minor_tick_value_idx, minor_tick_value in enumerate(list_minor_ticks):
             if minor_tick_value < min_value:
-                list_minor_ticks.pop(0)
-                list_minor_str_ticks.pop(0)
+                idx_list_to_remove_minor[minor_tick_value_idx] = False
             else:
                 break
+        list_minor_ticks = list(np.array(list_minor_ticks)[idx_list_to_remove_minor])
+        list_minor_str_ticks = list(np.array(list_minor_str_ticks)[idx_list_to_remove_minor])
 
-        for major_tick_value in list_major_ticks:
+        idx_list_to_remove_major = np.ones(len(list_major_ticks), dtype=bool)
+        for major_tick_value_idx, major_tick_value in enumerate(list_major_ticks):
             if major_tick_value < min_value:
-                list_major_ticks.pop(0)
-                list_major_str_ticks.pop(0)
+                idx_list_to_remove_major[major_tick_value_idx] = False
             else:
                 break
+        list_major_ticks = list(np.array(list_major_ticks)[idx_list_to_remove_major])
+        list_major_str_ticks = list(np.array(list_major_str_ticks)[idx_list_to_remove_major])
 
 
         mask_values_larger_major = list(np.where(np.array(list_major_ticks, dtype=float) > max_value)[0])
@@ -682,6 +698,116 @@ class AxisTools:
             del list_minor_str_ticks[index]
 
         return list_major_ticks, list_major_str_ticks, list_minor_ticks, list_minor_str_ticks
+
+    @staticmethod
+    def unit2wave_label(wave_unit):
+        """
+        Function convert wavelength units into a string that can be used for axis labels
+
+        Parameters
+        ----------
+        wave_unit : ``astropy.units.Quantity``
+
+        Returns
+        -------
+        rgb wave_label : str
+        """
+        if wave_unit == u.Angstrom:
+            wave_label = r'Wavelength [${\rm \AA}$]'
+        elif wave_unit == u.nm:
+            wave_label = r'Wavelength [nm]'
+        elif wave_unit == u.micron:
+            wave_label = r'Wavelength [${\rm \mu m}$]'
+        else:
+            wave_label = r'Wavelength [%s]' % str(wave_unit)
+
+        return wave_label
+
+    @staticmethod
+    def unit2flux_label(flux_unit, separate_unit=False):
+        """
+        Function convert flux units into a string that can be used for axis labels
+
+        Parameters
+        ----------
+        flux_unit : ``astropy.units.Quantity``
+        separate_unit : bool
+
+        Returns
+        -------
+        rgb flux_label : str or tuple
+        """
+        if flux_unit == u.erg / (u.Angstrom * u.s * u.cm * u.cm):
+            if separate_unit:
+                label_name = 'Flux'
+                label_unit = r'[erg ${\rm \AA}^{-1}$ s$^{-1}$ cm$^{-2}$]'
+                return label_name, label_unit
+            else:
+                return r'Flux [erg ${\rm \AA}^{-1}$ s$^{-1}$ cm$^{-2}$]'
+        else:
+            if separate_unit:
+                label_name = 'Flux'
+                label_unit = r'[%s]' % (str(flux_unit).replace('2', '$^2$'))
+                return label_name, label_unit
+            else:
+                return 'Flux ' + r'[%s]' % (str(flux_unit).replace('2', '$^2$'))
+
+    @staticmethod
+    def switch_label_factor_into_label(ax, label_name, label_unit=None, axis='y', color='k', fontsize=20, labelpad=0):
+        """
+        Function put the axis factor into the axis label
+
+        Parameters
+        ----------
+        ax : ``matplotlib.axes.Axes``
+        label_name : str
+        label_unit : str
+        axis : str
+        color : str
+        fontsize : int or float
+        labelpad : int or float
+
+        Returns
+        -------
+        None
+        """
+        ax.callbacks.connect(axis + 'lim_changed', AxisTools.update_axis_label)
+        ax.figure.canvas.draw()
+
+        ax_spine = getattr(ax, '%saxis' % axis)
+
+        AxisTools.update_axis_label(ax_spine=ax_spine, label_name=label_name, label_unit=label_unit,
+                                    fontsize=fontsize, color=color, labelpad=labelpad)
+
+    @staticmethod
+    def update_axis_label(ax_spine, label_name, label_unit, fontsize, color, labelpad):
+        """
+        Function to construct axis label with offset factor
+
+        Parameters
+        ----------
+        ax_spine : ``matplotlib.axes.Axes``
+        label_name : str
+        label_unit : str
+        color : str
+        fontsize : int or float
+        labelpad : int or float
+
+        Returns
+        -------
+        None
+        """
+
+        fmt = ax_spine.get_major_formatter()
+        ax_spine.offsetText.set_visible(False)
+        if label_unit is None:
+            label = label_name + ' ' + fmt.get_offset()
+        else:
+            label = label_name + ' ' + fmt.get_offset() + ' ' + label_unit
+
+        ax_spine.set_label_text(label, fontsize=fontsize, color=color)
+        ax_spine.labelpad = labelpad
+
 
 class ImgTools:
     """
@@ -1202,6 +1328,16 @@ class StrTools:
         return format(d1, 'f')
 
     @staticmethod
+    def value_with_uncertainty2str(value, value_err):
+        # order of magnitude of uncertainty:
+        order_of_mag = int(np.log10(value_err))
+        converted_value = value/(10**(order_of_mag))
+        converted_value_err = value_err/(10**(order_of_mag))
+        return r'%.1f $\pm$ %.1f $\times10^{%i}$' % (converted_value, converted_value_err, order_of_mag)
+
+
+
+    @staticmethod
     def float2mag_str(f, f_err=None, n_digits=2):
         order_of_mag = int(np.log10(f))
         str_value = StrTools.float2str(f=f/(10**(order_of_mag)), max_digits=n_digits)
@@ -1213,14 +1349,24 @@ class StrTools:
         return str_value
 
     @staticmethod
-    def age2label(age):
+    def age2label(age, display_digits=1):
         if np.isnan(age):
             return 'NaN'
-        if age < 1000: return str(age) + ' Myr'
-        # convert to Gyr
-        else:
-            if age % 1000 == 0: return '%i Gyr' % (age / 1000)
-            else: return '%.1f Gyr' % (age / 1000)
+        elif isinstance(age, int):
+            if age < 1000: return str(age) + ' Myr'
+            # convert to Gyr
+            else:
+                if age % 1000 == 0: return '%i Gyr' % (age / 1000)
+                else: return '%.1f Gyr' % (age / 1000)
+        elif isinstance(age, float):
+            if age < 1000:
+                return f'{age:.{display_digits}f}' + ' Myr'
+            # convert to Gyr
+            else:
+                if age % 1000 == 0:
+                    return '%i Gyr' % (age / 1000)
+                else:
+                    return f'{age/1000:.{display_digits}f}' + ' Gyr'
 
     @staticmethod
     def mstar2ord_mag(mstar, ord_mag):
@@ -1657,6 +1803,594 @@ class SEDTools:
 class SpecPlotTools:
 
     @staticmethod
+    def plot_ppxf_results(ppxf_fit_dict, ppxf_comp_dict, plot_param_dict=None):
+
+        if plot_param_dict is None:
+            plot_param_dict = plotting_params.ppxf_overview_plot_param_dict
+
+        #######################
+        #### define figure ####
+        #######################
+        fig = plt.figure(figsize=plot_param_dict['figsize'])
+
+        # plot overview_spec
+        SpecPlotTools.plot_ppxf_best_fit_overview(fig=fig, ppxf_fit_dict=ppxf_fit_dict, plot_param_dict=plot_param_dict)
+
+        # plot light fraction and provide best fit params
+        SpecPlotTools.plot_ppxf_light_weight_frac(fig=fig, ppxf_fit_dict=ppxf_fit_dict, ppxf_comp_dict=ppxf_comp_dict,
+                                                  plot_param_dict=plot_param_dict)
+
+        SpecPlotTools.plot_ppxf_line_fit(fig=fig, ppxf_fit_dict=ppxf_fit_dict, plot_param_dict=plot_param_dict)
+
+        return fig
+
+    @staticmethod
+    def plot_ppxf_best_fit_overview(fig, ppxf_fit_dict, plot_param_dict):
+        ax_overview_spec = fig.add_axes((
+            plot_param_dict['overview_spec_left_align'], plot_param_dict['overview_spec_bottom_align'],
+            plot_param_dict['overview_spec_width'], plot_param_dict['overview_spec_height']))
+        ax_overview_spec_residuals = fig.add_axes((
+            plot_param_dict['overview_spec_residuals_left_align'],
+            plot_param_dict['overview_spec_residuals_bottom_align'],
+            plot_param_dict['overview_spec_residuals_width'], plot_param_dict['overview_spec_residuals_height']))
+
+        AxisTools.frame2axis(ax=ax_overview_spec, color='k', line_width=3)
+        AxisTools.frame2axis(ax=ax_overview_spec_residuals, color='k', line_width=3)
+
+
+        # get data and transform to needed units
+        # wave = (ppxf_fit_dict['wave'] * ppxf_fit_dict['wave_unit']).to(plot_param_dict['x_unit']).value
+        # total_flux = (ppxf_fit_dict['total_flux'] * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit']).value
+        # best_fit = (ppxf_fit_dict['best_fit'] * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit']).value
+        # continuum_best_fit = (ppxf_fit_dict['continuum_best_fit'] * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit']).value
+        #
+        wave = (ppxf_fit_dict['pp'].lam * ppxf_fit_dict['wave_unit']).to(plot_param_dict['x_unit']).value
+        total_flux = (ppxf_fit_dict['pp'].galaxy * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit']).value
+        total_flux_err = (ppxf_fit_dict['pp'].noise * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit']).value
+        best_fit = (ppxf_fit_dict['pp'].bestfit * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit']).value
+        gas_best_fit = (ppxf_fit_dict['pp'].gas_bestfit * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit']).value
+        continuum_best_fit = best_fit - gas_best_fit
+
+
+        # get axis labels
+        x_axis_label = AxisTools.unit2wave_label(wave_unit=plot_param_dict['x_unit'])
+        y_axis_label = AxisTools.unit2flux_label(flux_unit=plot_param_dict['y_unit'])
+
+        # plot the spectrum
+        ax_overview_spec.plot(wave, total_flux,
+                              color='k', linewidth=6, label='Obs. Spectrum')
+        # plot best overall fit
+        ax_overview_spec.plot(wave, best_fit,
+                              color='tab:red', linewidth=4, label='Best pPXF Fit')
+        # plot the continuum best fit
+        ax_overview_spec.plot(wave, continuum_best_fit,
+                              color='tab:orange', linewidth=4, label='Best continuum Fit')
+        # the residuals
+        ax_overview_spec_residuals.plot(wave, (total_flux - best_fit) / total_flux,
+                                        color='k', linewidth=6, label='(Obs - Mod) / Obs')
+
+        # get the limits
+        min_x_data = np.nanmin(wave)
+        max_x_data = np.nanmax(wave)
+        min_y_data = np.nanmin(total_flux)
+        max_y_data = np.nanmax(total_flux)
+        y_data_span = max_y_data - min_y_data
+        x_data_span = max_x_data - min_x_data
+        ax_overview_spec.set_xlim((min_x_data - x_data_span*0.01), (max_x_data + x_data_span*0.01))
+        ax_overview_spec.set_ylim((min_y_data - y_data_span*0.01), (max_y_data + y_data_span*0.1))
+        ax_overview_spec_residuals.set_xlim((min_x_data - x_data_span*0.01), (max_x_data + x_data_span*0.01))
+        ax_overview_spec.set_xscale('log')
+        ax_overview_spec_residuals.set_xscale('log')
+        ax_overview_spec.set_yscale('log')
+        list_major_xticks, list_major_str_xticks, list_minor_xticks, list_minor_str_xticks = (
+            AxisTools.get_log_tick_labels(min_value=min_x_data, max_value=max_x_data,
+                                          minor_tick_label_display=[True, True, True, True, True, True, True, True]))
+        ax_overview_spec.set_xticks(list_major_xticks)
+        ax_overview_spec.set_xticks(list_minor_xticks, minor=True)
+        ax_overview_spec_residuals.set_xticks(list_major_xticks)
+        ax_overview_spec_residuals.set_xticklabels(list_major_str_xticks)
+        ax_overview_spec_residuals.set_xticks(list_minor_xticks, minor=True)
+        ax_overview_spec_residuals.set_xticklabels(list_minor_str_xticks, minor=True)
+
+        ax_overview_spec.tick_params(axis='both', which='major', width=5, length=15, direction='in', color='k', top=True, right=True,
+                           labelsize=plot_param_dict['fontsize_label'], labelbottom=False)
+        ax_overview_spec.tick_params(axis='both', which='minor', width=3, length=10, direction='in', color='k', top=True, right=True,
+                           labelsize=plot_param_dict['fontsize_label'], labelbottom=False)
+        ax_overview_spec_residuals.tick_params(axis='both', which='major', width=5, length=15, direction='in', color='k',
+                                     top=True, right=True,
+                           labelsize=plot_param_dict['fontsize_label'])
+        ax_overview_spec_residuals.tick_params(axis='both', which='minor', width=3, length=10, direction='in', color='k',
+                                     top=True, right=True,
+                           labelsize=plot_param_dict['fontsize_label'])
+
+        # set the label
+        ax_overview_spec_residuals.set_xlabel(x_axis_label, fontsize=plot_param_dict['fontsize_label'])
+        ax_overview_spec.set_ylabel(y_axis_label, fontsize=plot_param_dict['fontsize_label'])
+        ax_overview_spec_residuals.set_ylabel('Relative \n residuals', fontsize=plot_param_dict['fontsize_label'])
+
+        ###########################
+        #### legends and texts ####
+        ###########################
+        # ledegnds
+        chi2_str = r'$\chi^2$ / NDoF = %.1f' % ppxf_fit_dict['pp'].chi2
+
+        chi2_str += '\n'
+        chi2_str += 'add. degree = %i' % ppxf_fit_dict['pp'].degree
+        chi2_str += '\n'
+        chi2_str += 'mult. degree = %i' % ppxf_fit_dict['pp'].mdegree
+
+        ax_overview_spec.legend(title=chi2_str, title_fontsize=plot_param_dict['fontsize_label'], frameon=False,
+                                fontsize=plot_param_dict['fontsize_label'])
+        ax_overview_spec_residuals.legend(frameon=False, fontsize=plot_param_dict['fontsize_label'])
+
+    @staticmethod
+    def plot_ppxf_light_weight_frac(fig, ppxf_fit_dict, ppxf_comp_dict, plot_param_dict):
+
+        # plot light fraction of models
+        ax_light_weight_frac = fig.add_axes((
+            plot_param_dict['light_weight_frace_left_align'], plot_param_dict['light_weight_frace_bottom_align'],
+            plot_param_dict['light_weight_frace_width'], plot_param_dict['light_weight_frace_height']))
+        ax_light_weight_frac_cbar = fig.add_axes((
+            plot_param_dict['cbar_light_weight_frace_left_align'], plot_param_dict['cbar_light_weight_frace_bottom_align'],
+            plot_param_dict['cbar_light_weight_frace_width'], plot_param_dict['cbar_light_weight_frace_height']))
+        AxisTools.frame2axis(ax=ax_light_weight_frac, color='k', line_width=3)
+        AxisTools.frame2axis(ax=ax_light_weight_frac_cbar, color='k', line_width=3)
+
+        # get light weights
+        # Exclude weights of the gas templates
+        light_weights = ppxf_fit_dict['pp'].weights[ppxf_comp_dict['mask_comp_stellar']]
+        # Reshape to (n_ages, n_metal)
+        light_weights = light_weights.reshape(ppxf_comp_dict['stellar_template_dict']['n_age_n_met_sps_temp'])
+        # Normalize to light fractions
+        light_weights /= light_weights.sum()
+
+        # get average age and metallicity
+        mean_ages, mean_met = ppxf_comp_dict['stellar_template_dict']['sps'].mean_age_metal(light_weights)
+        mass2light = ppxf_comp_dict['stellar_template_dict']['sps'].mass_to_light(
+            light_weights, redshift=ppxf_comp_dict['redshift'])
+
+        # get the age and metallicity grid
+        xgrid = np.log10(ppxf_comp_dict['stellar_template_dict']['sps'].age_grid) + 3
+        ygrid = ppxf_comp_dict['stellar_template_dict']['sps'].metal_grid
+
+        # Grid centers
+        age_grid_centers = xgrid[:, 0]
+        met_grid_centers = ygrid[0, :]
+        # internal grid borders
+        age_grid_borders = (age_grid_centers[1:] + age_grid_centers[:-1])/2
+        met_grid_borders = (met_grid_centers[1:] + met_grid_centers[:-1])/2
+        # 1st/last border
+        age_grid_borders = np.hstack([1.5*age_grid_centers[0] - age_grid_centers[1]/2,
+                                      age_grid_borders,
+                                      1.5*age_grid_centers[-1] - age_grid_centers[-2]/2])
+        met_grid_borders = np.hstack([1.5*met_grid_centers[0] - met_grid_centers[1]/2,
+                                      met_grid_borders,
+                                      1.5*met_grid_centers[-1] - met_grid_centers[-2]/2])
+
+        norm = ColorBarTools.compute_cbar_norm(vmin_vmax=(np.min(light_weights) + 0.01, np.max(light_weights)))
+        ColorBarTools.create_cbar(
+            ax_cbar=ax_light_weight_frac_cbar, cmap=plot_param_dict['light_weight_cmap'], norm=norm,
+            cbar_label='Light Frac.', fontsize=plot_param_dict['fontsize_label'])
+        # plot
+        ax_light_weight_frac.pcolormesh(age_grid_borders, met_grid_borders, light_weights.T,
+                                        cmap=plot_param_dict['light_weight_cmap'], norm=norm,
+                                        edgecolors='face', lw=0.3)
+
+        ax_light_weight_frac.scatter(mean_ages - 6, mean_met, facecolor='tab:blue', marker='*', edgecolor='k', linewidth=3,
+                                     s=5000)
+
+
+        ax_light_weight_frac.tick_params(axis='both', which='major', width=5, length=15, direction='in', color='k',
+                                     top=True, right=True,
+                           labelsize=plot_param_dict['fontsize_label'])
+        ax_light_weight_frac.tick_params(axis='both', which='minor', width=3, length=10, direction='in', color='k',
+                                     top=True, right=True,
+                           labelsize=plot_param_dict['fontsize_label'])
+
+        # set the label
+        ax_light_weight_frac.set_xlabel('log(Age / Myr)', fontsize=plot_param_dict['fontsize_label'])
+        ax_light_weight_frac.set_ylabel('[H/M]', fontsize=plot_param_dict['fontsize_label'])
+        ax_light_weight_frac.set_title("Light Weights Fractions", loc='left',
+                                       fontsize=plot_param_dict['fontsize_label'])
+
+        # add text
+        display_str = r'$\underline{\rm Parameters \,\,\, Stellar \,\,\, Continuum}$'
+        display_str += ' \n'
+        age_label = StrTools.age2label(age=10 ** (mean_ages - 6))
+        display_str += ('Age = ' + age_label)
+        display_str += ' \n'
+        display_str += '[H/M] = %.4f' % mean_met
+        display_str += ' \n'
+        display_str += r'M$_*$/L = %.3f' % mass2light
+        display_str += ' \n'
+        display_str += r'A$_{\rm V}$ = %.2f mag' % ppxf_fit_dict['pp'].dust[0]['sol']
+        display_str += ' \n'
+        display_str += r'V$_{*}$ = %.1f$\pm$%.1f km/s' % (ppxf_fit_dict['pp'].sol[0][0], ppxf_fit_dict['pp'].error[0][0])
+        display_str += ' \n'
+        display_str += r'$\sigma_{*}$ = %.1f$\pm$%.1f km/s' % (ppxf_fit_dict['pp'].sol[0][1], ppxf_fit_dict['pp'].error[0][1])
+        if ppxf_fit_dict['pp'].moments[0] == 4:
+            display_str += ' \n'
+            display_str += r'h$_{3}$ = %.2f$\pm$%.2f' % (ppxf_fit_dict['pp'].sol[0][2], ppxf_fit_dict['pp'].error[0][2])
+            display_str += ' \n'
+            display_str += r'h$_{4}$ = %.2f$\pm$%.2f' % (ppxf_fit_dict['pp'].sol[0][3], ppxf_fit_dict['pp'].error[0][3])
+
+        StrTools.display_text_on_fig(fig=fig, text=display_str, x_pos=plot_param_dict['fit_param_text_pos'][0],
+                                     y_pos=plot_param_dict['fit_param_text_pos'][1],
+                                     fontsize=plot_param_dict['fontsize_label'], text_color='k',
+                                     horizontal_alignment='left', vertical_alignment='top',
+                                     with_box=True, box_frame_color='k', box_frame_line_width=5, box_facecolor='grey',
+                                     box_style='round', box_edge_pad=0.5, box_alpha=0.4)
+
+    @staticmethod
+    def plot_ppxf_line_fit(fig, ppxf_fit_dict, plot_param_dict):
+
+        # plot lines
+        line_list_idx = 1
+        while True:
+            if ('line_list_%i' % line_list_idx) in  plot_param_dict.keys():
+
+                plot_line_list = plot_param_dict['line_list_%i' % line_list_idx]
+                # plot emission lines
+                ax_line_list = fig.add_axes((
+                    plot_param_dict['line_axis_%i_left_align' % line_list_idx],
+                    plot_param_dict['line_axis_%i_bottom_align' % line_list_idx],
+                    plot_param_dict['line_axis_%i_width' % line_list_idx],
+                    plot_param_dict['line_axis_%i_height' % line_list_idx]))
+                ax_line_list_residuals = fig.add_axes((
+                    plot_param_dict['line_axis_residuals_%i_left_align' % line_list_idx],
+                    plot_param_dict['line_axis_residuals_%i_bottom_align' % line_list_idx],
+                    plot_param_dict['line_axis_residuals_%i_width' % line_list_idx],
+                    plot_param_dict['line_axis_residuals_%i_height' % line_list_idx]))
+                SpecPlotTools.plot_ppxf_line_axis(
+                    ax=ax_line_list, ax_residuals=ax_line_list_residuals, plot_line_list=plot_line_list,
+                    ppxf_fit_dict=ppxf_fit_dict, plot_param_dict=plot_param_dict)
+                line_list_idx += 1
+            else:
+                break
+
+
+        # display emission line parameters
+        gas_names = ppxf_fit_dict['pp'].gas_names
+        gas_comp = ppxf_fit_dict['pp'].component[ppxf_fit_dict['pp'].gas_component]
+        unique_gas_comp = np.unique(gas_comp)
+        # add text
+        display_str = r'$\underline{\rm Emission \,\,\, Line \,\,\, Kinematics}$'
+        display_str += ' \n'
+        for kin_comp in unique_gas_comp:
+            vel = ppxf_fit_dict['pp'].sol[kin_comp][0]
+            vel_err = ppxf_fit_dict['pp'].error[kin_comp][0]
+            sig = ppxf_fit_dict['pp'].sol[kin_comp][1]
+            sig_err = ppxf_fit_dict['pp'].error[kin_comp][1]
+            display_str += r'V(%i) = %.1f$\pm$%.1f km/s' % (kin_comp, vel, vel_err)
+            display_str += ' \n'
+            display_str += r'$\sigma$(%i) = %.1f$\pm$%.1f km/s' % (kin_comp, sig, sig_err)
+            display_str += ' \n'
+            if ppxf_fit_dict['pp'].moments[kin_comp] == 4:
+                h3 = ppxf_fit_dict['pp'].sol[kin_comp][2]
+                h3_err = ppxf_fit_dict['pp'].error[kin_comp][2]
+                h4 = ppxf_fit_dict['pp'].sol[kin_comp][3]
+                h4_err = ppxf_fit_dict['pp'].error[kin_comp][3]
+                display_str += r'h$_{3}$(%i) = %.3f$\pm$%.3f, h$_{4}$(%i) = %.3f$\pm$%.3f ' % (kin_comp, h3, h3_err, kin_comp, h4, h4_err)
+                display_str += ' \n'
+
+        display_str += ' \n'
+        display_str += r'$\underline{\rm Emission \,\,\, Line \,\,\, Fluxes}$'
+        display_str += ' \n'
+
+        line_unit = (ppxf_fit_dict['spec_unit'] * u.Angstrom).to(plot_param_dict['y_unit'] * u.Angstrom)
+        unit_str = r'erg s$^{-1}$ cm$^{-2}$'
+        print(line_unit)
+
+        for kin_comp in unique_gas_comp:
+            # get all lines which are in the individual component
+            for line in np.array(gas_names)[np.array(gas_comp) == kin_comp]:
+                idx_line_name = np.where(np.array(gas_names) == line)
+                flux = ppxf_fit_dict['pp'].gas_flux[idx_line_name] * line_unit
+                flux_err = ppxf_fit_dict['pp'].gas_flux_error[idx_line_name] * line_unit
+                flux_str = StrTools.value_with_uncertainty2str(value=flux[0], value_err=flux_err[0])
+                if line[-6:-4] == '_d':
+                    line_name = phys_params.all_line_dict[line[:-6]]['plot_name']
+                else:
+                    line_name = phys_params.all_line_dict[line[:-4]]['plot_name']
+                display_str += r'%s(%i) = %s %s' % (line_name, kin_comp, flux_str, unit_str)
+                display_str += ' \n'
+
+
+
+                            # for line in gas_names:
+            #     mask_line_name = np.array(gas_names) == line + '_(%i)' % kin_comp
+            #     idx_line_name = np.where(np.array(gas_names) == line + '_(%i)' % kin_comp)
+            #     if sum(mask_line_name) > 0:
+            #         # add component to flux array
+            #         line_flux += gas_bestfit_templates[:, idx_line_name[0][0]]
+
+        StrTools.display_text_on_fig(fig=fig, text=display_str, x_pos=0.5,
+                                     y_pos=0.3,
+                                     fontsize=plot_param_dict['fontsize_label'], text_color='k',
+                                     horizontal_alignment='left', vertical_alignment='top',
+                                     with_box=True, box_frame_color='k', box_frame_line_width=5, box_facecolor='grey',
+                                     box_style='round', box_edge_pad=0.5, box_alpha=0.4)
+
+    @staticmethod
+    def plot_ppxf_line_axis(ax, ax_residuals, plot_line_list, ppxf_fit_dict, plot_param_dict):
+
+        # get all line components
+        gas_names = ppxf_fit_dict['pp'].gas_names
+        gas_comp = ppxf_fit_dict['pp'].component[ppxf_fit_dict['pp'].gas_component]
+        unique_gas_comp = np.unique(gas_comp)
+        gas_bestfit_templates = ppxf_fit_dict['pp'].gas_bestfit_templates
+
+        # getting all data to plot
+        wave = (ppxf_fit_dict['pp'].lam * ppxf_fit_dict['wave_unit']).to(plot_param_dict['x_unit'])
+        total_flux = (ppxf_fit_dict['pp'].galaxy * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit'])
+        best_fit = (ppxf_fit_dict['pp'].bestfit * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit'])
+        gas_best_fit = (ppxf_fit_dict['pp'].gas_bestfit * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit'])
+        continuum_best_fit = best_fit - gas_best_fit
+
+        min_wave_lim = None
+        max_wave_lim = None
+        kin_comp_dict = {}
+        for kin_comp in unique_gas_comp:
+            line_flux = np.zeros(len(wave))
+            for line in plot_line_list:
+                mask_line_name = np.array(gas_names) == line + '_(%i)' % kin_comp
+                idx_line_name = np.where(np.array(gas_names) == line + '_(%i)' % kin_comp)
+                if sum(mask_line_name) > 0:
+                    # add component to flux array
+                    line_flux += gas_bestfit_templates[:, idx_line_name[0][0]]
+                    # check if line is a fixed doublet
+                    if line[-2:] == '_d':
+                        line1 = line[:-2]
+                        line2 = phys_params.all_line_dict[line1]['doublet_line']
+                        min_wave1, max_wave1 = spec_tools.SpecHelper.get_obs_line_window(
+                            line=line1, vel=ppxf_fit_dict['pp'].sol[kin_comp][0], redshift=None,
+                            vacuum=False, blue_limit=30., red_limit=30.)
+                        min_wave2, max_wave2 = spec_tools.SpecHelper.get_obs_line_window(
+                            line=line2, vel=ppxf_fit_dict['pp'].sol[kin_comp][0], redshift=None,
+                            vacuum=False, blue_limit=30., red_limit=30.)
+                        min_wave = np.min((min_wave1.value, min_wave2.value)) * wave.unit
+                        max_wave = np.max((max_wave1.value, max_wave2.value)) * wave.unit
+                    else:
+                        min_wave, max_wave = spec_tools.SpecHelper.get_obs_line_window(
+                            line=line, vel=ppxf_fit_dict['pp'].sol[kin_comp][0], redshift=None, vacuum=False,
+                            blue_limit=30., red_limit=30.)
+                    if min_wave_lim is None:
+                        min_wave_lim = min_wave
+                    else:
+                        if min_wave < min_wave_lim:
+                            min_wave_lim = min_wave
+                    if max_wave_lim is None:
+                        max_wave_lim = max_wave
+                    else:
+                        if max_wave > max_wave_lim:
+                            max_wave_lim = max_wave
+            kin_comp_dict.update({kin_comp: (line_flux * ppxf_fit_dict['spec_unit']).to(plot_param_dict['y_unit'])})
+
+        # plot all data
+        ax.step(wave, (total_flux - continuum_best_fit), where='mid', color=plot_param_dict['line_data_color'],
+                linewidth=plot_param_dict['line_data_line_width'])
+        # plot fit component
+        for kin_comp in unique_gas_comp:
+            ax.plot(wave, kin_comp_dict[kin_comp], color=plot_param_dict['line_comp_color_list'][kin_comp],
+                    linewidth=plot_param_dict['line_comp_line_width'])
+
+        ax.plot(wave, best_fit - continuum_best_fit, color=plot_param_dict['best_fit_color'],
+                linewidth=plot_param_dict['best_fit_line_width'])
+
+        # plot residuals
+        if ax_residuals is not None:
+            ax_residuals.step(wave, (total_flux - best_fit), where='mid', color=plot_param_dict['line_data_color'],
+                              linewidth=plot_param_dict['line_data_line_width'])
+            ax_residuals.plot([min_wave_lim.value, max_wave_lim.value], [0, 0],
+                                         color='gray', linestyle='--', linewidth=3)
+
+        # set limits
+        line_window_mask = (wave > min_wave_lim) & (wave < max_wave_lim)
+        min_flux = np.nanmin((total_flux - continuum_best_fit)[line_window_mask])
+        max_flux = np.nanmax((total_flux - continuum_best_fit)[line_window_mask])
+        min_flux_lim = min_flux - (max_flux - min_flux) * 0.05
+        max_flux_lim = max_flux + (max_flux - min_flux) * 0.05
+        min_flux_residuals = np.nanmin((total_flux - best_fit)[line_window_mask])
+        max_flux_residuals = np.nanmax((total_flux - best_fit)[line_window_mask])
+        min_flux_lim_residuals = min_flux_residuals - (max_flux_residuals - min_flux_residuals) * 0.05
+        max_flux_lim_residuals = max_flux_residuals + (max_flux_residuals - min_flux_residuals) * 0.05
+
+        ax.set_xlim(min_wave_lim.value, max_wave_lim.value)
+        ax.set_ylim(min_flux_lim.value, max_flux_lim.value)
+        if ax_residuals is not None:
+            ax_residuals.set_xlim(min_wave_lim.value, max_wave_lim.value)
+            ax_residuals.set_ylim(min_flux_lim_residuals.value, max_flux_lim_residuals.value)
+
+        # tick labels and axis labels
+        # should there be a lable on the bottom ? (depending on residuals )
+        if ax_residuals is not None:
+            ax.tick_params(axis='both', which='major', width=5, length=15, direction='in', colors=plot_param_dict['tick_label_color'], top=True, right=True,
+                           labelsize=plot_param_dict['fontsize_label'], labelbottom=False)
+            ax.tick_params(axis='both', which='minor', width=3, length=10, direction='in', colors=plot_param_dict['tick_label_color'], top=True, right=True,
+                               labelsize=plot_param_dict['fontsize_label'], labelbottom=False)
+
+            ax_residuals.tick_params(axis='both', which='major', width=5, length=15, direction='in', colors=plot_param_dict['tick_label_color'],
+                                         top=True, right=True,
+                               labelsize=plot_param_dict['fontsize_label'])
+            ax_residuals.tick_params(axis='both', which='minor', width=3, length=10, direction='in', colors=plot_param_dict['tick_label_color'],
+                                         top=True, right=True,
+                               labelsize=plot_param_dict['fontsize_label'])
+            ax.xaxis.label.set_color(plot_param_dict['tick_label_color'])
+            ax.yaxis.label.set_color(plot_param_dict['tick_label_color'])
+            ax_residuals.xaxis.label.set_color(plot_param_dict['tick_label_color'])
+            ax_residuals.yaxis.label.set_color(plot_param_dict['tick_label_color'])
+            if plot_param_dict['display_x_label']:
+                x_label = AxisTools.unit2wave_label(wave_unit=plot_param_dict['x_unit'])
+                ax_residuals.set_xlabel(x_label, fontsize=plot_param_dict['fontsize_label'], color=plot_param_dict['label_color'])
+
+        else:
+            ax.tick_params(axis='both', which='major', width=5, length=15, direction='in', colors=plot_param_dict['tick_label_color'], top=True, right=True,
+                               labelsize=plot_param_dict['fontsize_label'], labelbottom=True)
+            ax.tick_params(axis='both', which='minor', width=3, length=10, direction='in', colors=plot_param_dict['tick_label_color'], top=True, right=True,
+                               labelsize=plot_param_dict['fontsize_label'], labelbottom=True)
+            ax.xaxis.label.set_color(plot_param_dict['tick_label_color'])
+            ax.yaxis.label.set_color(plot_param_dict['tick_label_color'])
+            if plot_param_dict['display_x_label']:
+                x_label = AxisTools.unit2wave_label(wave_unit=plot_param_dict['x_unit'])
+                ax.set_xlabel(x_label, fontsize=plot_param_dict['fontsize_label'], color=plot_param_dict['label_color'])
+
+        # axis labels
+        y_axis_label_name, y_axis_label_unit = AxisTools.unit2flux_label(
+            flux_unit=plot_param_dict['y_unit'], separate_unit=True)
+        AxisTools.switch_label_factor_into_label(
+            ax=ax, label_name=y_axis_label_name, label_unit=y_axis_label_unit,  axis="y",
+            fontsize=plot_param_dict['fontsize_label'], color=plot_param_dict['label_color'])
+        if ax_residuals is not None:
+            AxisTools.switch_label_factor_into_label(
+                ax=ax_residuals, label_name='Residuals \n', label_unit=None,  axis="y",
+                fontsize=plot_param_dict['fontsize_label'], color=plot_param_dict['label_color'])
+
+        # add line labels
+        for line in plot_line_list:
+            if line[-2:] == '_d':
+                line1 = line[:-2]
+                line2 = phys_params.all_line_dict[line1]['doublet_line']
+                                # get a mean line position
+                obs_wave_pos_line1 = []
+                obs_wave_pos_line2 = []
+                for kin_comp in unique_gas_comp:
+                    if line + '_(%i)' % kin_comp in gas_names:
+                        obs_wave_pos_line1.append(spec_tools.SpecHelper.get_obs_line_pos(
+                            line=line1, vel=ppxf_fit_dict['pp'].sol[kin_comp][0], vacuum=False).value)
+                        obs_wave_pos_line2.append(spec_tools.SpecHelper.get_obs_line_pos(
+                            line=line2, vel=ppxf_fit_dict['pp'].sol[kin_comp][0], vacuum=False).value)
+                mean_obs_wave_pos_line1 = np.nanmean(obs_wave_pos_line1)
+                mean_obs_wave_pos_line2 = np.nanmean(obs_wave_pos_line2)
+
+                local_line_window_mask_line1 = (wave.value > (mean_obs_wave_pos_line1 - 10)) & (wave.value < (mean_obs_wave_pos_line1 + 10))
+                max_flux_in_window_line1 = np.nanmax((total_flux - continuum_best_fit)[local_line_window_mask_line1]).value
+                min_flux_in_window_line1 = np.nanmin((total_flux - continuum_best_fit)[local_line_window_mask_line1]).value
+                StrTools.display_text_on_data_point(
+                    ax=ax, text=phys_params.all_line_dict[line1]['plot_name'],
+                    x_data_point=mean_obs_wave_pos_line1 + 3,
+                    y_data_point=max_flux_in_window_line1 - (max_flux_in_window_line1 - min_flux_in_window_line1) * 0.05,
+                    y_axis_frac_offset=0.0, fontsize=plot_param_dict['fontsize_label'],
+                    text_color=plot_param_dict['line_label_color'], path_eff_color=plot_param_dict['line_label_path_eff_color'],
+                    horizontal_alignment='left', vertical_alignment='center')
+
+                local_line_window_mask_line2 = (wave.value > (mean_obs_wave_pos_line2 - 10)) & (wave.value < (mean_obs_wave_pos_line2 + 10))
+                max_flux_in_window_line2 = np.nanmax((total_flux - continuum_best_fit)[local_line_window_mask_line2]).value
+                min_flux_in_window_line2 = np.nanmin((total_flux - continuum_best_fit)[local_line_window_mask_line2]).value
+                if line2 == '[NII]6548':
+                    StrTools.display_text_on_data_point(
+                        ax=ax, text=phys_params.all_line_dict[line2]['plot_name'],
+                        x_data_point=mean_obs_wave_pos_line2 - 3,
+                        y_data_point=max_flux_in_window_line2 - (max_flux_in_window_line2 - min_flux_in_window_line2) * 0.05,
+                        y_axis_frac_offset=0.0, fontsize=plot_param_dict['fontsize_label'],
+                        text_color=plot_param_dict['line_label_color'], path_eff_color=plot_param_dict['line_label_path_eff_color'],
+                        horizontal_alignment='right', vertical_alignment='center')
+                else:
+                    StrTools.display_text_on_data_point(
+                        ax=ax, text=phys_params.all_line_dict[line2]['plot_name'],
+                        x_data_point=mean_obs_wave_pos_line2 + 3,
+                        y_data_point=max_flux_in_window_line2 - (max_flux_in_window_line2 - min_flux_in_window_line2) * 0.05,
+                        y_axis_frac_offset=0.0, fontsize=plot_param_dict['fontsize_label'],
+                        text_color=plot_param_dict['line_label_color'], path_eff_color=plot_param_dict['line_label_path_eff_color'],
+                        horizontal_alignment='left', vertical_alignment='center')
+
+            else:
+                # get a mean line position
+                obs_wave_pos = []
+                for kin_comp in unique_gas_comp:
+                    if line + '_(%i)' % kin_comp in gas_names:
+                        obs_wave_pos.append(spec_tools.SpecHelper.get_obs_line_pos(
+                            line=line, vel=ppxf_fit_dict['pp'].sol[kin_comp][0], vacuum=False).value)
+                mean_obs_wave_pos = np.nanmean(obs_wave_pos)
+
+                local_line_window_mask = (wave.value > (mean_obs_wave_pos - 10)) & (wave.value < (mean_obs_wave_pos + 10))
+                max_flux_in_window = np.nanmax((total_flux - continuum_best_fit)[local_line_window_mask]).value
+                min_flux_in_window = np.nanmin((total_flux - continuum_best_fit)[local_line_window_mask]).value
+                StrTools.display_text_on_data_point(
+                    ax=ax, text=phys_params.all_line_dict[line]['plot_name'],
+                    x_data_point=mean_obs_wave_pos + 3,
+                    y_data_point=max_flux_in_window - (max_flux_in_window - min_flux_in_window) * 0.05,
+                    y_axis_frac_offset=0.0, fontsize=plot_param_dict['fontsize_label'],
+                    text_color=plot_param_dict['line_label_color'], path_eff_color=plot_param_dict['line_label_path_eff_color'],
+                    horizontal_alignment='left', vertical_alignment='center')
+
+    @staticmethod
+    def plot_spec_feature_window(ax, spec_dict, font_size_label=20,
+                                 spec_feature='Red Bump', rest_wave_window=None,
+                                 log_y_scale=True,
+                                 y_axis_offset_frac_bottom = 0.1, y_axis_offset_frac_top = 0.05, data_lw=3, model_lw=4):
+
+        if rest_wave_window is None:
+            if spec_feature == 'Red Bump':
+                rest_wave_window = (5700, 5900)
+            elif spec_feature == 'Blue Bump':
+                rest_wave_window = (4650 - 100, 4650 + 100)
+            elif spec_feature == 'Halpha':
+                rest_wave_window = (6565 - 30, 6565 + 30)
+
+
+        min_obs_wave = spec_tools.SpecHelper.rest_wave2obs_wave(rest_wave=rest_wave_window[0], vel=spec_dict['sys_vel'])
+        max_obs_wave = spec_tools.SpecHelper.rest_wave2obs_wave(rest_wave=rest_wave_window[1], vel=spec_dict['sys_vel'])
+
+        mask = ((spec_dict['native_wave'] >  min_obs_wave) &
+                (spec_dict['native_wave'] <  max_obs_wave))
+
+        if sum(mask) == 0:
+            return None
+
+        flux = spec_dict['native_spec_flx'].to((1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom)
+
+        ax.step(spec_dict['native_wave'][mask], flux[mask], where='mid',
+                linewidth=data_lw, color='k', label='Obs. Spectrum')
+
+        ax.set_xlim(min_obs_wave.value, max_obs_wave.value)
+
+        if log_y_scale:
+            spec_min = np.nanmin(flux[mask]).value
+            spec_max = np.nanmax(flux[mask]).value
+            spec_width = spec_max - spec_min
+
+            if (spec_min < 0) | ((spec_min - y_axis_offset_frac_bottom * spec_width) < 0):
+                ax.set_yscale('log')
+            elif np.isnan(spec_min) + np.isnan(spec_max):
+                print('no real values passible')
+            else:
+                ax.set_ylim((spec_min - y_axis_offset_frac_bottom * spec_width),
+                        (spec_max + y_axis_offset_frac_top * spec_width))
+
+                ax.set_yscale('log')
+
+
+
+            # set limits
+
+        else:
+            spec_min = np.nanmin(flux[mask]).value
+            spec_max = np.nanmax(flux[mask]).value
+            spec_width = spec_max - spec_min
+            # set limits
+            ax.set_ylim((spec_min - y_axis_offset_frac_bottom * spec_width),
+                        (spec_max + y_axis_offset_frac_top * spec_width))
+
+
+
+
+        ax.tick_params(axis='both', which='both', width=1.5, length=4, right=True, top=True, direction='in',
+                       labelsize=font_size_label)
+
+        StrTools.display_text_in_corner(ax=ax, text=spec_feature, fontsize=font_size_label, text_color='k', x_frac=0.02, y_frac=0.98, horizontal_alignment='left',
+                               vertical_alignment='top', path_eff=True, path_err_linewidth=3, path_eff_color='white', rotation=0)
+
+
+
+
+
+
+
+
+
+
+
+    @staticmethod
     def get_em_comp_colors(idx=0, n_comps=1, line_type='nl'):
         # can go up to five gaussian components (I think everything above this is totally nonsense)
         color_list_nl_1 = [color_list_tab10[2]]
@@ -1798,61 +2532,6 @@ class SpecPlotTools:
             if display_y_label:
                 ax.set_ylabel(r'$\phi$ [10$^{-%i}$ erg cm$^{-2}$ s$^{-1}$ ${\rm \AA^{-1}}$]' % int(np.log10(y_axis_scale)),
                               fontsize=font_size_label, color=label_color)
-
-
-    @staticmethod
-    def plot_red_bump(ax, ppxf_fit_dict, y_axis_scale=1e16, font_size_label=20, display_label=True,
-                          font_size_title=30, display_y_label=False, y_label_pos='left', display_x_label=False,
-                      plot_continuum=True,
-                      min_rest_wave_red_bump=5650, max_rest_wave_red_bump=5850,
-        y_axis_offset_frac_bottom = 0.1, y_axis_offset_frac_top = 0.05, data_lw=3, model_lw=4
-    ):
-
-
-        min_obs_wave_red_bump = spec_tools.SpecTools.conv_rest_wave2obs_wave(rest_wave=min_rest_wave_red_bump, vel_kmps=ppxf_fit_dict['sys_vel'])
-        max_obs_wave_red_bump = spec_tools.SpecTools.conv_rest_wave2obs_wave(rest_wave=max_rest_wave_red_bump, vel_kmps=ppxf_fit_dict['sys_vel'])
-        mask = ((ppxf_fit_dict['wave'] >  min_obs_wave_red_bump) &
-                (ppxf_fit_dict['wave'] <  max_obs_wave_red_bump))
-
-
-        spec_min = np.nanmin(ppxf_fit_dict['total_flux'][mask])
-        spec_max = np.nanmax(ppxf_fit_dict['total_flux'][mask])
-        spec_width = spec_max - spec_min
-
-        # set limits
-        ax.set_xlim(min_obs_wave_red_bump, max_obs_wave_red_bump)
-        ax.set_ylim((spec_min - y_axis_offset_frac_bottom * spec_width) * y_axis_scale,
-                    (spec_max + y_axis_offset_frac_top * spec_width) * y_axis_scale)
-
-
-        ax.step(ppxf_fit_dict['wave'][mask], ppxf_fit_dict['total_flux'][mask] * y_axis_scale, where='mid',
-                linewidth=data_lw, color='k', label='Obs. Spectrum')
-
-        if plot_continuum:
-            ax.plot(ppxf_fit_dict['wave'][mask], ppxf_fit_dict['continuum_best_fit'][mask] * 1e16, linewidth=model_lw,
-                    color='tab:orange', label='Stellar Continuum fit')
-        if display_label:
-            StrTools.display_text_in_corner(ax=ax, text='Red Bump', fontsize=font_size_title, text_color='k',
-                                            x_frac=0.97, y_frac=0.97, horizontal_alignment='right',
-                               vertical_alignment='top', path_eff=True, path_err_linewidth=3, path_eff_color='white', rotation=0)
-
-        ax.tick_params(axis='both', which='both', width=1.5, length=4, right=True, top=True, direction='in',
-                       labelsize=font_size_label)
-        if display_x_label:
-            ax.set_xlabel(r'Wavelength [${\rm \AA}$]', fontsize=font_size_label)
-
-        # put in Y labels
-        if y_label_pos == 'left':
-
-            if display_y_label:
-                ax.set_ylabel(r'$\phi$ [10$^{-%i}$ erg cm$^{-2}$ s$^{-1}$ ${\rm \AA^{-1}}$]' % int(np.log10(y_axis_scale)),
-                              fontsize=font_size_label)
-        else:
-            ax.yaxis.set_label_position('right')
-            ax.yaxis.tick_right()
-            if display_y_label:
-                ax.set_ylabel(r'$\phi$ [10$^{-%i}$ erg cm$^{-2}$ s$^{-1}$ ${\rm \AA^{-1}}$]' % int(np.log10(y_axis_scale)),
-                              fontsize=font_size_label)
 
 
 
