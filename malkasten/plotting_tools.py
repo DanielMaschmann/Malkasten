@@ -15,9 +15,8 @@ from matplotlib.patches import ConnectionPatch, Ellipse
 from matplotlib import patheffects
 from matplotlib import text as mtext
 import shutil
-if shutil.which('latex'):
+if shutil.which('latex') is None:
     plt.rc('text', usetex=True)
-
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.stats import SigmaClip
