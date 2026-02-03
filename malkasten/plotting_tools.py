@@ -14,7 +14,9 @@ from matplotlib.colorbar import ColorbarBase
 from matplotlib.patches import ConnectionPatch, Ellipse
 from matplotlib import patheffects
 from matplotlib import text as mtext
-plt.rc('text', usetex=True)
+import shutil
+if shutil.which('latex'):
+    plt.rc('text', usetex=True)
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord
