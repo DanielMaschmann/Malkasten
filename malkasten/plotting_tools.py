@@ -28,7 +28,6 @@ from astropy.visualization import SqrtStretch
 
 from photutils.segmentation import make_2dgaussian_kernel
 from photutils.background import Background2D, MedianBackground
-
 from regions import PixCoord, RectanglePixelRegion
 
 from malkasten import multicolorfits as mcf
@@ -163,6 +162,25 @@ class WCSPlottingTools:
             # # Plot the circle points
             # ax.scatter_coord(circle_coords, color=color, linewidth=line_width, linestyle=line_style, alpha=alpha, label=label)
 
+    @staticmethod
+    def plot_coord_ellipse(ax, wcs, pos, major_rad, minor_rad, angle,
+                           color, face_color='None', line_style='-', line_width=3, alpha=1., fill=False, zorder=1):
+
+        if isinstance(major_rad, u.Quantity):
+            major_rad = major_rad.to(u.arcsec).value
+        if isinstance(minor_rad, u.Quantity):
+            minor_rad = minor_rad.to(u.arcsec).value
+        if isinstance(angle, u.Quantity):
+            angle = angle.to(u.deg).value
+
+        major_rad_pix = helper_func.CoordTools.transform_world2pix_scale(length_in_arcsec=major_rad, wcs=wcs, dim=0)
+        minor_rad_pix = helper_func.CoordTools.transform_world2pix_scale(length_in_arcsec=minor_rad, wcs=wcs, dim=1)
+
+        pos_pixel = wcs.world_to_pixel(pos)
+
+        ellipse = Ellipse((pos_pixel[0], pos_pixel[1]), width=major_rad_pix * 2, height=minor_rad_pix * 2, angle=angle,
+                          edgecolor=color, facecolor=face_color, linewidth=line_width, linestyle=line_style, alpha=alpha)
+        ax.add_patch(ellipse)
 
     @staticmethod
     def display_beam(ax, major_arcsec, minor_arcsec, angle_degree, image_shape, wcs, color='k', x_frac=0.05, y_frac=0.95,
@@ -217,7 +235,6 @@ class WCSPlottingTools:
                                    fontsize=fontsize, text_color=text_color,
                                    horizontal_alignment=horizontal_alignment,
                                    vertical_alignment=vertical_alignment)
-
 
     @staticmethod
     def plot_coord_box(ax, pos, width, height, color, line_style='-', line_width=3, alpha=1., fill=False):
@@ -567,10 +584,6 @@ class WCSPlottingTools:
         else:
             ax_img_large.add_patch(con_box_1)
             ax_img_large.add_patch(con_box_2)
-
-
-
-
 
 
 class AxisTools:
