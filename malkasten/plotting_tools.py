@@ -585,6 +585,14 @@ class WCSPlottingTools:
             ax_img_large.add_patch(con_box_1)
             ax_img_large.add_patch(con_box_2)
 
+    @staticmethod
+    def plot_obs_hull(ax, wcs, hull_dict, line_width=4, line_style='-', color='tab:red'):
+        for hull_idx in hull_dict.keys():
+            coords_pix = wcs.world_to_pixel(
+                SkyCoord(ra=hull_dict[hull_idx]['ra']*u.deg, dec=hull_dict[hull_idx]['dec']*u.deg))
+            ax.plot(coords_pix[0], coords_pix[1], linewidth=line_width, linestyle=line_style, color=color)
+
+
 
 class AxisTools:
     """
@@ -884,6 +892,59 @@ class ImgTools:
                                           gamma=gamma_b)
             color_list.append(mcf.colorize_image(grey_b, color_b, colorintype='hex', gammacorr_color=gamma_corr_b))
 
+        return mcf.combine_multicolor(color_list, gamma=combined_gamma, inverse=inverse)
+
+    @staticmethod
+    def get_2color_img(data1=None, data2=None,
+                       color1='#FF4433', color2='#1F51FF',
+                    min_max1=None, min_max2=None,
+                    rescalefn='asinh',
+                    scaletype1='perc', scaletype2='perc',
+                    gamma1=2.2, gamma2=2.2,
+                    gamma_corr1=2.2, gamma_corr2=2.2,
+                       combined_gamma=2.2,
+                    inverse=False):
+        """
+        Function to create an RGB image
+
+        Parameters
+        ----------
+        data1, data2 : ``numpy.ndarray``or array
+            color images. Must be all same shape
+        color1, color2: str
+            hex code for color
+        min_max1, min_max2 : tuple or None
+            denotes the percentages till where the data is used
+        rescalefn : str
+            scale function can be linear sqrt squared log power sinh asinh
+        scaletype1, scaletype2 : str
+        'abs' for absolute values, 'perc' for percentiles
+        gamma1, gamma2 : float
+            gamma factor for each individual color band
+        gamma_corr1, gamma_corr2 : float
+            gamma correction factor for each grey scale image
+        combined_gamma : float
+            gamma factor of resulting rgb image
+
+        Returns
+        -------
+        rgb image : ``numpy.ndarray``
+            of shape (N,N, 3)
+        """
+        if min_max1 is None:
+            min_max1 = [0., 99.7]
+        if min_max2 is None:
+            min_max2 = [0., 99.7]
+
+        color_list = []
+        if data1 is not None:
+            grey1 = mcf.greyRGBize_image(data1, rescalefn=rescalefn, scaletype=scaletype1, min_max=min_max1,
+                                          gamma=gamma1)
+            color_list.append(mcf.colorize_image(grey1, color1, colorintype='hex', gammacorr_color=gamma_corr1))
+        if data2 is not None:
+            grey2 = mcf.greyRGBize_image(data2, rescalefn=rescalefn, scaletype=scaletype2, min_max=min_max2,
+                                          gamma=gamma2)
+            color_list.append(mcf.colorize_image(grey2, color2, colorintype='hex', gammacorr_color=gamma_corr2))
 
         return mcf.combine_multicolor(color_list, gamma=combined_gamma, inverse=inverse)
 
