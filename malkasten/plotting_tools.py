@@ -1215,8 +1215,8 @@ class CCDTools:
         y_wave_1 = locals()[y_color_1 + '_wave']
         y_wave_2 = locals()[y_color_2 + '_wave']
 
-        color_ext_x = dust_tools.extinction_tools.ExtinctionTools.color_ext_ccm89_av(wave1=x_wave_1, wave2=x_wave_2, av=av_val)
-        color_ext_y = dust_tools.extinction_tools.ExtinctionTools.color_ext_ccm89_av(wave1=y_wave_1, wave2=y_wave_2, av=av_val)
+        color_ext_x = DustTools.color_ext_ccm89_av(wave1=x_wave_1, wave2=x_wave_2, av=av_val)
+        color_ext_y = DustTools.color_ext_ccm89_av(wave1=y_wave_1, wave2=y_wave_2, av=av_val)
 
         slope_av_vector = ((y_color_int + color_ext_y) - y_color_int) / ((x_color_int + color_ext_x) - x_color_int)
 
