@@ -11,9 +11,11 @@ import decimal
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
 from matplotlib.colorbar import ColorbarBase
-from matplotlib.patches import ConnectionPatch, Ellipse
+from matplotlib.patches import ConnectionPatch, Ellipse, FancyBboxPatch
 from matplotlib import patheffects
 from matplotlib import text as mtext
+import textwrap
+
 import shutil
 if shutil.which('latex') is not None:
     plt.rc('text', usetex=True)
@@ -636,6 +638,8 @@ class AxisTools:
             log_max_lim = np.log10(max_value) + (np.log10(max_value) - np.log10(min_value)) * max_margin
             min_lim = 10 ** log_min_lim
             max_lim = 10 ** log_max_lim
+        print(min_value, max_value)
+        print(axis, min_lim, max_lim)
 
         if axis == 'x':
             ax.set_xlim(min_lim, max_lim)
@@ -1199,8 +1203,9 @@ class CCDTools:
                 #                         color=age_label_color, fontsize=age_label_fontsize, zorder=40, path_effects=pe)
 
     @staticmethod
-    def plot_reddening_vect(ax, x_color_1='v', x_color_2='i',  y_color_1='u', y_color_2='b',
-                        x_color_int=0, y_color_int=0, av_val=1,
+    def plot_hst_reddening_vect(ax,
+                            x_color_1='v', x_color_2='i',  y_color_1='u', y_color_2='b',
+                            x_color_int=0, y_color_int=0, av_val=1,
                         linewidth=2, line_color='k',
                         text=False, fontsize=20, text_color='k', x_text_offset=0.01, y_text_offset=-0.01):
 
@@ -1248,7 +1253,47 @@ class CCDTools:
             #         rotation=angle_av_vector, fontsize=fontsize, color=text_color)
 
     @staticmethod
-    def plot_reddening_vect_wave_av(ax, x_wave_1, x_wave_2, y_wave_1, y_wave_2,
+    def plot_reddening_vect_wave(ax, x_wave_1, x_wave_2,  y_wave_1, y_wave_2,
+                                 x_color_int=0, y_color_int=0, av_val=1,
+                                 linewidth=2, line_color='k', text=False, fontsize=20, text_color='k',
+                                 x_text_offset=0.01, y_text_offset=-0.01):
+
+        color_ext_x = DustTools.color_ext_ccm89_av(wave1=x_wave_1, wave2=x_wave_2, av=av_val)
+        color_ext_y = DustTools.color_ext_ccm89_av(wave1=y_wave_1, wave2=y_wave_2, av=av_val)
+
+        slope_av_vector = ((y_color_int + color_ext_y) - y_color_int) / ((x_color_int + color_ext_x) - x_color_int)
+
+        angle_av_vector = np.arctan(color_ext_y/color_ext_x) * 180/np.pi
+
+        ax.annotate('', xy=(x_color_int + color_ext_x, y_color_int + color_ext_y), xycoords='data',
+                    xytext=(x_color_int, y_color_int), fontsize=fontsize,
+                    textcoords='data', arrowprops=dict(arrowstyle='-|>', color=line_color, lw=linewidth, ls='-'))
+
+        if text:
+            if isinstance(av_val, int):
+                arrow_text = r'A$_{\rm V}$=%i mag' % av_val
+            else:
+                arrow_text = r'A$_{\rm V}$=%.1f mag' % av_val
+
+            StrTools.display_text_on_data_point(ax=ax, text=arrow_text,
+                                                x_data_point=x_color_int + color_ext_x/2,
+                                                y_data_point= y_color_int + color_ext_y/2,
+                                                x_axis_frac_offset=x_text_offset, y_axis_frac_offset=y_text_offset,
+                                              x_scale_log=False, y_scale_log=False,
+                                   fontsize=fontsize, text_color=text_color,
+                                   horizontal_alignment='center',
+                                   vertical_alignment='bottom',
+                                   path_eff=False, path_err_linewidth=3, path_eff_color='white', rotation=angle_av_vector)
+
+            # ax.text(x_color_int + x_text_offset, y_color_int + y_text_offset, arrow_text,
+            #         horizontalalignment='left', verticalalignment='bottom',
+            #         transform_rotates_text=True, rotation_mode='anchor',
+            #         rotation=angle_av_vector, fontsize=fontsize, color=text_color)
+
+
+
+    @staticmethod
+    def plot_reddening_vect_wave_av_old(ax, x_wave_1, x_wave_2, y_wave_1, y_wave_2,
                                  x_color_int=0, y_color_int=0, av_val=1,
                         linewidth=2, line_color='k',
                         text=True, fontsize=20, text_color='k', x_text_offset=0.01, y_text_offset=-0.01, reddening_law='ccm89', flip_text=False):
@@ -1301,8 +1346,8 @@ class CCDTools:
                         linewidth=2, line_color='k',
                         text=True, fontsize=20, text_color='k', x_text_offset=0.01, y_text_offset=-0.01):
 
-        color_ext_x = dust_tools.extinction_tools.ExtinctionTools.color_ext_ccm89_av(wave1=x_wave_1, wave2=x_wave_2, av=dust_tools.extinction_tools.ExtinctionTools.ebv2av(ebv=ebv_val))
-        color_ext_y = dust_tools.extinction_tools.ExtinctionTools.color_ext_ccm89_av(wave1=y_wave_1, wave2=y_wave_2, av=dust_tools.extinction_tools.ExtinctionTools.ebv2av(ebv=ebv_val))
+        color_ext_x = DustTools.color_ext_ccm89_av(wave1=x_wave_1, wave2=x_wave_2, av=DustTools.ebv2av(ebv=ebv_val))
+        color_ext_y = DustTools.color_ext_ccm89_av(wave1=y_wave_1, wave2=y_wave_2, av=DustTools.ebv2av(ebv=ebv_val))
         print(color_ext_x)
         print(color_ext_y)
 
@@ -1397,8 +1442,7 @@ class StrTools:
 
         ctx.prec = max_digits
 
-
-        d1 = ctx.create_decimal(repr(f))
+        d1 = ctx.create_decimal(f)
         return format(d1, 'f')
 
     @staticmethod
@@ -1414,9 +1458,9 @@ class StrTools:
     @staticmethod
     def float2mag_str(f, f_err=None, n_digits=2):
         order_of_mag = int(np.log10(f))
-        str_value = StrTools.float2str(f=f/(10**(order_of_mag)), max_digits=n_digits)
+        str_value = StrTools.float2str(f=f/(10 ** order_of_mag), max_digits=n_digits)
         if f_err is not None:
-            str_value_f_err = f"{f_err/(10**(order_of_mag)):.{n_digits}f}"
+            str_value_f_err = f"{f_err/(10 ** order_of_mag):.{n_digits}f}"
 
             str_value += (r' $\pm$ ' + str_value_f_err)
         str_value += (r' $10^{%i}$' % order_of_mag)
@@ -1514,6 +1558,87 @@ class StrTools:
         fig.text(x_pos, y_pos, text, color=text_color, fontsize=fontsize, horizontalalignment=horizontal_alignment,
                  verticalalignment=vertical_alignment,
                  bbox=bbox)
+
+
+    @staticmethod
+    def place_column_text(ax, text, xy, wrap_n, shift, bbox=False, **kwargs):
+        """ Creates a text annotation with the text in columns.
+        The text columns are provided by a list of strings.
+        A surrounding box can be added via bbox=True parameter.
+        If so, FancyBboxPatch kwargs can be specified.
+
+        The width of the column can be specified by wrap_n,
+        the shift parameter determines how far apart the columns are.
+        The axes are specified by the ax parameter.
+
+        Requires:
+        import textwrap
+        import matplotlib.patches as mpatches
+        """
+        # does not work needs some more precision in future here some hacks:
+
+        # print(text_boxes)
+        # print(text_boxes[0])
+        # print(text_boxes[0].get_window_extent())
+        # print(text_boxes[0].get_window_extent().transformed(ax_sed.transAxes.inverted()))
+        # # print(text_boxes[0].get_window_extent().x0)
+        # # print(text_boxes[0].get_window_extent().bounds)
+        #
+        # # plt.draw() # so we can extract real bbox data
+        # # first let's calulate the height of the largest bbox
+        # heights=[]
+        # for box in text_boxes:
+        #     heights.append(box.get_window_extent().transformed(ax_sed.transAxes.inverted()).bounds[3])
+        # max_height=max(heights)
+        # print(max_height)
+        # # then calculate the furthest x value of the last bbox
+        # end_x = text_boxes[-1].get_window_extent().transformed(ax_sed.transAxes.inverted()).xmax
+        # print(end_x)
+        #
+        # # draw final
+        # width = end_x - x
+        # fancypatch_y = y - max_height
+        #
+        # print('x,fancypatch_y ', x,fancypatch_y)
+        # print('width ', width)
+        # print('max_height ', max_height)
+        # rect = FancyBboxPatch(xy=(x,fancypatch_y), width=width, height=max_height, transform=ax_sed.transData.inverted(),
+        #                       facecolor='grey', alpha=0.5, edgecolor='black', boxstyle='round,pad=1')
+        # print(rect)
+        # ax_sed.add_patch(rect)
+
+
+        # place the individual text boxes, with a bbox to extract details from later
+        x,y = xy
+        n = 0
+        text_boxes = []
+        for i in text:
+            text = textwrap.fill(i, wrap_n)
+            box = ax.text(x = x + n, y = y, s=text, va='top', ha='left',
+                             bbox=dict(alpha=0, boxstyle='square,pad=0'))
+            text_boxes.append(box)
+            n += shift
+
+        if bbox == True: # draw surrounding box
+            # extract box data
+            plt.draw() # so we can extract real bbox data
+            # first let's calulate the height of the largest bbox
+            heights=[]
+            for box in text_boxes:
+                heights.append(box.get_bbox_patch().get_extents().transformed(ax.transData.inverted()).bounds[3])
+            max_height=max(heights)
+            # then calculate the furthest x value of the last bbox
+            end_x = text_boxes[-1].get_window_extent().transformed(ax.transData.inverted()).xmax
+            # draw final
+            width = end_x - x
+            fancypatch_y = y - max_height
+            rect = FancyBboxPatch(xy=(x,fancypatch_y), width=width, height=max_height, **kwargs)
+            ax.add_patch(rect)
+
+
+
+
+
 
 
 class ColorBarTools:
